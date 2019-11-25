@@ -73,7 +73,7 @@ main_content = [
             data=go.Heatmap(
                 z=None, y=[i for i in range(10)], x=[i for i in range(10)]),
             layout=go.Layout(title='Market Prices')),
-        style={'height': 1000},
+        style={'height': 800},
         config={'displayModeBar': False}),
     dcc.Interval(
         id='interval-component',
