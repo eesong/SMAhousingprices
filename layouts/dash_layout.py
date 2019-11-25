@@ -38,9 +38,10 @@ def create_card(value, unit, name, threshold=None):
     )
 
 
-def create_tab_content(content_list, card_list, footer=[]):
+def create_tab_content(content_list, card_list, header=[], footer=[]):
     return dbc.Card(
         dbc.CardBody([
+            main(header),
             create_cards_horizontal(card_list),
             main(content_list),
             main(footer)
@@ -50,13 +51,7 @@ def create_tab_content(content_list, card_list, footer=[]):
 
 
 def main(content_list):
-    if len(content_list) == 0:
-        return html.Div()
-    content1 = content_list.pop(0)
-    return html.Div([
-        dbc.Row([dbc.Col(content1, md=5)] +
-                [dbc.Col(content) for content in content_list])
-    ],)
+    return html.Div([dbc.Row([dbc.Col(content) for content in content_list])],)
 
 
 def create_cards_horizontal(card_list):

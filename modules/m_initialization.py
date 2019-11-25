@@ -3,15 +3,19 @@ import random
 import numpy as np
 import pandas as pd  # we try not to depend on pandas, to better translate later?
 from copy import deepcopy
-from initialization_params import *
 from modules.m_demographic import generate_person
 
 
-def initialize():
+def initialize(params):
+
+    initialization_price_mu, initialization_price_sigma = params[
+        'initialization_price_mu'], params['initialization_price_sigma']
+    fengshui_mu, fengshui_sigma = params['fengshui_mu'], params[
+        'fengshui_sigma']
 
     persons = {}
     for _ in range(10):
-        persons[secrets.token_hex(4)] = generate_person()
+        persons[secrets.token_hex(4)] = generate_person(params)
     persons = pd.DataFrame.from_dict(persons, orient='index')
 
     persons['house_staying'] = persons['house_staying'].astype(object)

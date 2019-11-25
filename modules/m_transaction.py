@@ -3,10 +3,10 @@ import random
 import numpy as np
 import pandas as pd  # we try not to depend on pandas, to better translate later?
 from copy import deepcopy
-from initialization_params import *
 
 
-def gen_asks(persons, houses, ask_df):
+def gen_asks(params, persons, houses, ask_df):
+    PROBA_SELL = params['PROBA_SELL']
     ''' phase 2 bid-ask
     1. Refresh ask_df pd.DataFrame()
     2. Add empty houses from `houses` to ask_df
@@ -79,13 +79,15 @@ def gen_asks(persons, houses, ask_df):
 # ask_df.sample(10)
 
 
-def gen_bids(persons, houses, ask_df, bid_df):
+def gen_bids(params, persons, houses, ask_df, bid_df):
     ''' phase 2 bid-ask
     1. Refresh bid_df pd.DataFrame()
     2. Generate subdf of persons who can and want to buy houses
     3. For each eligible person, iterate over ask, grow person_bids list of dict
     4. Merge 
     '''
+    PROBA_BUY = params['PROBA_BUY']
+
     bid_df_columns = bid_df.columns.to_list(
     )  # ['location', 'bidder_id', 'utility', 'bid_price']
 
@@ -161,7 +163,7 @@ def gen_bids(persons, houses, ask_df, bid_df):
 # bid_df.head()
 
 
-def match_ask_bid(persons, houses, ask_df, bid_df):
+def match_ask_bid(params, persons, houses, ask_df, bid_df):
     '''
     1. Create a container list to store dicts of info relating to bidding for each listing
     2. Iterate over listings in ask_df, find best bid - is successful match
