@@ -65,3 +65,18 @@ def create_tabs(tab_content_list, tab_name_list):
     return dbc.Container(
         [dbc.Tabs([dbc.Tab(content, label=name) for content, name in tabs])],
         className="mt-4")
+
+
+def create_slider(label, name, values):
+    min, max, step, value = values
+    return dbc.Container([
+        html.H5(label),
+        dcc.Slider(
+            id=name + '-slider',
+            min=min,
+            max=max,
+            step=step,
+            value=value,
+        ),
+        html.Div(id=name + '-slider-output'),
+    ])

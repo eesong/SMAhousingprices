@@ -1,48 +1,31 @@
-# # demographic
-# migration_base_age = 20
-# DEATH_RATE = 0.05  #deprecated? cant see where it was called
-# death_coef = 0.2
-# birth_n, birth_p = 10, 0.2
-
-# # geographic
-# city_x, city_y = 7, 9
-
-# # economic
-# income_mu, income_sigma = 10, 5
-# wealth_mu, wealth_sigma = 300, 10
-
-# # houses
-# initialization_price_mu, initialization_price_sigma = 300, 10
-# fengshui_mu, fengshui_sigma = 1, .1
-
-# # transactions
-# PROBA_SELL, PROBA_BUY = 0.4, 0.8
+import numpy as np
 
 params = {
     # demographic
-    'migration_base_age': 20,
-    'DEATH_RATE': 0.05,  #deprecated? cant see where it was called
-    'death_coef': 0.2,
-    'birth_n': 10,
-    'birth_p': 0.2,
+    'INITIAL_AGE': lambda: 20,
+    'DYING_PROB_FUNCTION': lambda age: 1. / (1. + np.exp(-(0.2 * (age - 50)))),
+    'NUM_BORN': lambda: np.random.binomial(10, 0.5),
 
     # geographic
-    'city_x': 7,
-    'city_y': 9,
+    'PREFERRED_LOCATION_X': lambda: 9,
+    'PREFERRED_LOCATION_Y': lambda: 9,
 
     # economic
-    'income_mu': 10,
-    'income_sigma': 5,
-    'wealth_mu': 300,
-    'wealth_sigma': 10,
+    'INCOME': lambda: 10,
+    'INITIAL_WEALTH': lambda: 100 + 100 * np.random.uniform(),
 
     # houses
-    'initialization_price_mu': 300,
-    'initialization_price_sigma': 10,
-    'fengshui_mu': 1,
-    'fengshui_sigma': .1,
+    'INITIAL_PRICE': lambda: 100 + 100 * np.random.uniform(),
+    'INTIAL_AMENITIES': lambda: np.random.uniform(),
+    'IDIO_COEF': 0.2,
+    'AMENITIES_COEF': 500,
+    'LOC_COEF': 500,
 
     # transactions
-    'PROBA_SELL': 0.4,
+    'PROBA_SELL': 0.8,
     'PROBA_BUY': 0.8,
+
+    # plot
+    'NUM_FRAMES': 10,
+    'MILLISECS_PER_FRAME': 100,
 }

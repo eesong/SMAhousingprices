@@ -12,17 +12,14 @@ def aging(params, persons, houses,
     houses["last_updated"] += 1
 
 
-def dying_prob_function(death_coef, age):
-    return 1. / (1. + np.exp(-(death_coef * (age - 50))))
-
-
 def dying(params, persons, houses,
           verbose=False):  # change this a function of age
-    death_coef = params['death_coef']
+    DYING_PROB_FUNCTION = params['DYING_PROB_FUNCTION']
+
     persons_id_dead = []
     for person_id in persons.index:
-        if np.random.uniform() < dying_prob_function(
-                death_coef, persons.loc[person_id, "age"]):
+        if np.random.uniform() < DYING_PROB_FUNCTION(
+                persons.loc[person_id, "age"]):
             if verbose:
                 print(person_id, " died")
             dead_person = persons.loc[person_id]
@@ -38,29 +35,31 @@ def dying(params, persons, houses,
 
 
 def birth(params, persons, houses, verbose=False):
-    birth_n, birth_p = params['birth_n'], params['birth_p']
-    born = np.random.binomial(birth_n, birth_p)
+    NUM_BORN = params['NUM_BORN']
+
+    born = NUM_BORN()
     for _ in range(born):
         persons.loc[secrets.token_hex(4)] = generate_person(params)
 
 
 def generate_person(params):
-    migration_base_age = params['migration_base_age']
-    income_mu, income_sigma = params['income_mu'], params['income_sigma']
-    wealth_mu, wealth_sigma = params['wealth_mu'], params['wealth_sigma']
-    city_x, city_y = params['city_x'], params['city_y']
+    INITIAL_AGE = params['INITIAL_AGE']
+    INCOME = params['INCOME']
+    INITIAL_WEALTH = params['INITIAL_WEALTH']
+    PREFERRED_LOCATION_X, PREFERRED_LOCATION_Y = params[
+        'PREFERRED_LOCATION_X'], params['PREFERRED_LOCATION_Y']
 
     person = {
-        "age": migration_base_age,
-        "income": np.random.normal(income_mu, income_sigma, 1)[0],
-        "wealth": np.random.normal(wealth_mu, wealth_sigma, 1)[0],
+        "age": INITIAL_AGE(),
+        "income": INCOME(),
+        "wealth": INITIAL_WEALTH(),
         "house_staying": np.NaN,
         "house_selling": np.NaN,
         "utility":
-            0,  # WEETS: utility here is person's 'score'. Every decision person makes must immediately result in increase of 0 or more, never decrease.
-        "idio": {
-            "preferred_location": (np.random.normal(city_x, 0.1, 1)[0],
-                                   np.random.normal(city_y, 0.1, 1)[0])
-        }
+            0,  # WEETS: utility here is the utility of the current staying house to the person. It will be swapped for the utility of the new house if this person buys new house.
+        # the true 'score' of a person is wealth + utility
+        'preferred_location_x': PREFERRED_LOCATION_X(),  # UPDATE(weets, 191125)
+        'preferred_location_y':
+            PREFERRED_LOCATION_Y()  # UPDATE(weets, 191125)
     }
     return person

@@ -8,10 +8,8 @@ from modules.m_demographic import generate_person
 
 def initialize(params):
 
-    initialization_price_mu, initialization_price_sigma = params[
-        'initialization_price_mu'], params['initialization_price_sigma']
-    fengshui_mu, fengshui_sigma = params['fengshui_mu'], params[
-        'fengshui_sigma']
+    INITIAL_PRICE, INTIAL_AMENITIES = params['INITIAL_PRICE'], params[
+        'INTIAL_AMENITIES']
 
     persons = {}
     for _ in range(10):
@@ -26,19 +24,11 @@ def initialize(params):
         for y in range(10):
             houses[(x, y)] = {
                 "location": (x, y),  # also the key 
-                "last_bought_price":
-                    np.random.normal(initialization_price_mu,
-                                     initialization_price_sigma, 1)[0],
-                "status":
-                    "empty",  # "empty", "occupied", "selling" 
-                "amenities": {
-                    "fengshui":
-                        np.random.normal(fengshui_mu, fengshui_sigma, 1)[0]
-                },
-                "occupant":
-                    np.NaN,
-                "last_updated":
-                    0
+                "last_bought_price": INITIAL_PRICE(),
+                "status": "empty",  # "empty", "occupied", "selling" 
+                'amenities': INTIAL_AMENITIES(),  # UPDATE(weets, 191125)
+                "occupant": np.NaN,
+                "last_updated": 0
             }
             houses[(x, y)]["market_price"] = houses[(x, y)]["last_bought_price"]
 
