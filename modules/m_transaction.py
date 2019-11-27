@@ -356,13 +356,14 @@ def utility_general_vectorised(params, house):
     Every person considers a house to have a certain utility.
     This is not based on personal perferences.
     '''
-
+    CITY_X = params['CITY_X']
+    CITY_Y = params['CITY_Y']
     AMENITIES_COEF = params['AMENITIES_COEF']
     LOC_COEF = params['LOC_COEF']
 
     utility_due_to_location = 2 / (
-        1 + (house["location"].apply(lambda tup: tup[0]) - 5.3)**2 +
-        (house["location"].apply(lambda tup: tup[1]) - 5.3)**2)
+        1 + (house["location"].apply(lambda tup: tup[0]) - CITY_X())**2 +
+        (house["location"].apply(lambda tup: tup[1]) - CITY_Y())**2)
 
     return LOC_COEF * utility_due_to_location + AMENITIES_COEF * house[
         "amenities"]  # UPDATE(weets, 191125)

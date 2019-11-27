@@ -21,6 +21,7 @@ def simulate(params, persons, houses, ask_df, bid_df):
     houses = drop_NaN_row(houses)
     houses.index = houses.index.map(convert_to_tuple_int)
     # print(houses['market_price'].mean())
+    return persons, houses, ask_df, bid_df
 
 
 def update_history(history, persons, houses, verbose=False):

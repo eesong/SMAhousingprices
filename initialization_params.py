@@ -7,6 +7,8 @@ params = {
     'NUM_BORN': lambda: np.random.binomial(10, 0.5),
 
     # geographic
+    'CITY_X': lambda: 5.3,
+    'CITY_Y': lambda: 5.3,
     'PREFERRED_LOCATION_X': lambda: 9,
     'PREFERRED_LOCATION_Y': lambda: 9,
 

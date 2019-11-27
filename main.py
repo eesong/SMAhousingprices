@@ -218,7 +218,8 @@ def start_sim(n):
     if (n is not None):
         for i in range(10):
             k += 1
-            simulate(params, persons, houses, ask_df, bid_df)
+            persons, houses, ask_df, bid_df = simulate(params, persons, houses,
+                                                       ask_df, bid_df)
             update_history(history, persons, houses)
         print('\n\n\n\n', houses, '\n\n\n\n', persons)
         return f"Sequence ended at {k} simulations"
