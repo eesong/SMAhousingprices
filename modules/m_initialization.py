@@ -10,7 +10,6 @@ def initialize(params):
 
     INITIAL_PRICE, INTIAL_AMENITIES = params['INITIAL_PRICE'], params[
         'INTIAL_AMENITIES']
-
     persons = {}
     for _ in range(10):
         persons[secrets.token_hex(4)] = generate_person(params)

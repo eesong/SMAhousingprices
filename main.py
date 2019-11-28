@@ -1,9 +1,11 @@
 from modules.m_initialization import initialize
-from layouts.dash_layout import create_tabs, main, create_cards_horizontal, create_card, create_tab_content, create_navbar, create_slider
+from layouts.dash_layout import create_tabs, main, create_cards_horizontal, create_card, create_tab_content, create_navbar, create_slider, create_cards_vertical
 from initialization_params import params as init_params
+from common import generate_min_max
 from simulation import simulate, update_history
 
 from collections import defaultdict
+import copy
 
 import dash
 import dash_table
@@ -24,19 +26,38 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 params = init_params
-history = defaultdict(list)
+run_history = {}
 
+runs = {'params': params}
 persons, houses, ask_df, bid_df = None, None, None, None
-k = 1000
+run_counter = 0
+sim_t = 0
+
+param_ids = ['init-wealth', 'init-price', 'amen-coef', 'loc-coef', 'no-born']
+param_names = [
+    'INITIAL_WEALTH', 'INITIAL_PRICE', 'AMENITIES_COEF', 'LOC_COEF', 'NUM_BORN'
+]
+params_lambdas = lambda value: [
+        lambda: value + 100 * np.random.uniform(), lambda: value + 100 * np.
+        random.uniform(), value, value, lambda: np.random.binomial(value, 0.5)
+    ]
+param_min_max = [
+    generate_min_max(100, 50),
+    generate_min_max(100, 50),
+    generate_min_max(100, 100),
+    generate_min_max(100, 100),
+    generate_min_max(10, 2)
+]
+slider_labels = [
+    'Initialization Wealth Mean', 'Initialization House Price',
+    'Amenities Coef', 'Location Coef', 'Number of People Born'
+]
 
 params_content = [
-    create_slider('Initialization Wealth Mean', 'init-wealth',
-                  (100, 400, 50, 300)),
-    create_slider('Initialization House Price', 'init-price',
-                  (100, 400, 50, 300)),
-    create_slider('Amenities Coef', 'amen-coef', (100, 1000, 100, 500)),
-    create_slider('Location Coef', 'loc-coef', (100, 1000, 100, 500)),
-    create_slider('Number of People Born', 'no-born', (10, 40, 1, 10)),
+    create_cards_vertical([
+        create_slider(slider_labels[i], param_ids[i], param_min_max[i])
+        for i in range(len(param_names))
+    ]),
     dbc.Button("Set Parameters!", id="set-params-button", className="mr-2"),
 ]
 
@@ -58,15 +79,20 @@ main_content = [
 
 ouput_content = [
     dcc.Graph(id='house-status-graph',),
-    dcc.Graph(id='persons-status-graph',),
+    dcc.Graph(id='house-occupancy-graph',),
 ]
 
 main_header = [
-    dbc.Button("Start sequence!", id="start-button", className="mr-2"),
-    html.Span(id="sim-count", style={"vertical-align": "middle"}),
+    dbc.Button("Start Simulation!", id="start-button", className="mr-2"),
 ]
 
-main_tab = create_tab_content([main_content], [], header=main_header)
+main_cards = [
+    create_card('run-count-text', run_counter, '/10', '# Runs', 10),
+    create_card('sim-count-text', sim_t, '', 'Years passed in run'),
+    create_card('sim-completion-text', 0, '', 'Simulation complete', 1),
+]
+
+main_tab = create_tab_content([main_content], main_cards, header=main_header)
 params_tab = create_tab_content([params_content], [])
 output_tab = create_tab_content([ouput_content], [])
 
@@ -78,50 +104,67 @@ app.layout = html.Div([navbar, tabs])
 ###################################### Params ######################################
 
 
-@app.callback(
-    dash.dependencies.Output('init-wealth-slider-output', 'children'),
-    [dash.dependencies.Input('init-wealth-slider', 'value')])
-def update_init_wealth(value):
-    global params
-    params['INITIAL_WEALTH'] = lambda: value + 100 * np.random.uniform()
-    return f'{value}'
+@app.callback([Output(name + '-slider', 'disabled') for name in param_ids],
+              [Input('vary-selection', 'value')])
+def disable_inputs(selected_index):
+    output = [False, False, False, False, False]
+    output[selected_index] = True
+    output = tuple(output)
+    return output
 
 
 @app.callback(
-    dash.dependencies.Output('init-price-slider-output', 'children'),
-    [dash.dependencies.Input('init-price-slider', 'value')])
-def update_init_price(value):
+    [Output(name + '-slider-output', 'children') for name in param_ids],
+    [Input(name + '-slider', 'value') for name in param_ids])
+def update_slider_value(*args):
     global params
-    params['INITIAL_PRICE'] = lambda: value + 100 * np.random.uniform()
-    return f'{value}'
+    output = []
+    for index, value in enumerate(args):
+        name = param_names[index]
+        params[name] = params_lambdas(value)[index]
+        output.append(value)
+    return tuple(output)
 
 
-@app.callback(
-    dash.dependencies.Output('amen-coef-slider-output', 'children'),
-    [dash.dependencies.Input('amen-coef-slider', 'value')])
-def update_amen_coef(value):
-    global params
-    params['INITIAL_WEALTH'] = value
-    return f'{value}'
+# @app.callback(
+#     Output('init-wealth-slider-output', 'children'),
+#     [Input('init-wealth-slider', 'value')])
+# def update_init_wealth(value):
+#     global params
+#     params['INITIAL_WEALTH'] = lambda: value + 100 * np.random.uniform()
+#     return f'{value}'
 
+# @app.callback(
+#     Output('init-price-slider-output', 'children'),
+#     [Input('init-price-slider', 'value')])
+# def update_init_price(value):
+#     global params
+#     params['INITIAL_PRICE'] = lambda: value + 100 * np.random.uniform()
+#     return f'{value}'
 
-@app.callback(
-    dash.dependencies.Output('loc-coef-slider-output', 'children'),
-    [dash.dependencies.Input('loc-coef-slider', 'value')])
-def update_loc_coef(value):
-    global params
-    params['INITIAL_PRICE'] = value
-    return f'{value}'
+# @app.callback(
+#     Output('amen-coef-slider-output', 'children'),
+#     [Input('amen-coef-slider', 'value')])
+# def update_amen_coef(value):
+#     global params
+#     params['INITIAL_WEALTH'] = value
+#     return f'{value}'
 
+# @app.callback(
+#     Output('loc-coef-slider-output', 'children'),
+#     [Input('loc-coef-slider', 'value')])
+# def update_loc_coef(value):
+#     global params
+#     params['INITIAL_PRICE'] = value
+#     return f'{value}'
 
-@app.callback(
-    dash.dependencies.Output('no-born-slider-output', 'children'),
-    [dash.dependencies.Input('no-born-slider', 'value')])
-def update_no_born(value):
-    global params
-    params['NUM_BORN'] = lambda: np.random.binomial(value, 0.5)
-    return f'{value}'
-
+# @app.callback(
+#     Output('no-born-slider-output', 'children'),
+#     [Input('no-born-slider', 'value')])
+# def update_no_born(value):
+#     global params
+#     params['NUM_BORN'] = lambda: np.random.binomial(value, 0.5)
+#     return f'{value}'
 
 ###################################### Graph ######################################
 
@@ -143,86 +186,100 @@ def update_heatmap_graph(n):
     }
 
 
+@app.callback([
+    Output('run-count-text', 'children'),
+    Output('sim-count-text', 'children')
+], [Input('interval-component', 'n_intervals')])
+def update_run_count(n):
+    return run_counter, sim_t
+
+
 @app.callback(
     Output('house-status-graph', 'figure'),
     [Input('interval-component', 'n_intervals')])
-def update_house_status_graph(n):
-    Y = history["total_houses_occupied"]
-    Y1 = history["total_houses_empty"]
-    Y2 = history["total_houses_selling"]
-    if not Y:
-        return {}
-    else:
-        X = [i for i in range(len(Y))]
-        data = go.Scatter(x=X, y=Y, name='total_houses_occupied')
-        data1 = go.Scatter(x=X, y=Y1, name='total_houses_empty')
-        data2 = go.Scatter(x=X, y=Y2, name='total_houses_selling')
+def gen_market_price_graph(n):
+    if len(run_history) == len(runs):
+        X = [i for i in range(len(run_history[list(run_history.keys())[0]]['mean_market_price']))]
+        data = [ go.Scatter(x=X, y=Y['mean_market_price'], name=key) for key, Y in run_history.items() ]
         return {
-            'data': [data, data1, data2],
+            'data': data,
             'layout':
                 go.Layout(
                     xaxis=dict(range=[min(X), max(X)]),
                     yaxis=dict(
-                        range=[min(Y + Y1 +
-                                   Y2), max(Y + Y1 + Y2)]),
+                        range=[
+                            min([min(Y['mean_market_price']) for key, Y in run_history.items()]), 
+                            max([max(Y['mean_market_price']) for key, Y in run_history.items()])]),
                 )
         }
 
 
 @app.callback(
-    Output('persons-status-graph', 'figure'),
+    Output('house-occupancy-graph', 'figure'),
     [Input('interval-component', 'n_intervals')])
-def update_population_status_graph(n):
-    Y = history["popn_with_zero_house"]
-    Y1 = history["popn_with_one_house"]
-    Y2 = history["popn_with_two_house"]
-    if not Y:
-        return {}
-    else:
-        X = [i for i in range(len(Y))]
-        data = go.Scatter(x=X, y=Y, name='popn_with_zero_house')
-        data1 = go.Scatter(x=X, y=Y1, name='popn_with_one_house')
-        data2 = go.Scatter(x=X, y=Y2, name='popn_with_two_house')
+def gen_occupancy_rate_graph(n):
+    if len(run_history) == len(runs):
+        X = [i for i in range(len(run_history[list(run_history.keys())[0]]['mean_market_price']))]
+        data = [ go.Scatter(x=X, y=Y['occupancy_rate'], name=key) for key, Y in run_history.items() ]
         return {
-            'data': [data, data1, data2],
+            'data': data,
             'layout':
                 go.Layout(
                     xaxis=dict(range=[min(X), max(X)]),
                     yaxis=dict(
-                        range=[min(Y + Y1 +
-                                   Y2), max(Y + Y1 + Y2)]),
+                        range=[
+                            min([min(Y['occupancy_rate']) for key, Y in run_history.items()]), 
+                            max([max(Y['occupancy_rate']) for key, Y in run_history.items()])]),
                 )
         }
 
 
-###################################### Commands ######################################
+###################################### Buttons ######################################
 
 
 @app.callback(
     Output('interval-component', 'max_intervals'),
-    [Input('set-params-button', 'n_clicks')])
-def set_params(n):
+    [Input('set-params-button', 'n_clicks'),
+     Input('vary-selection', 'value')])
+def set_params(n, selected_index):
     if n and (n > 0):
-        global persons, houses, ask_df, bid_df
-        persons, houses, ask_df, bid_df = initialize(params)
+        global runs, persons, houses, ask_df, bid_df
+        runs = {}
+        param_to_vary = param_names[selected_index]
+        param_to_vary_vals = [
+            param_min_max[selected_index][0] +
+            i * param_min_max[selected_index][2] for i in range(10)
+        ]
+        for val in param_to_vary_vals:
+            params[param_to_vary] = params_lambdas(val)[selected_index]
+            runs[str(param_to_vary) + ' = ' +str(val)] = params
         return -1
     else:
         return 0
 
 
 @app.callback(
-    Output("sim-count", "children"), [Input('start-button', 'n_clicks')])
+    Output("sim-completion-text", "children"),
+    [Input('start-button', 'n_clicks')])
 def start_sim(n):
-    global k, history
-    global params, persons, houses, ask_df, bid_df
+    global sim_t, run_counter, run_history
+    global persons, houses, ask_df, bid_df
     if (n is not None):
-        for i in range(10):
-            k += 1
-            persons, houses, ask_df, bid_df = simulate(params, persons, houses,
-                                                       ask_df, bid_df)
-            update_history(history, persons, houses)
-        print('\n\n\n\n', houses, '\n\n\n\n', persons)
-        return f"Sequence ended at {k} simulations"
+        run_counter = 0
+        for key, params in runs.items():
+            history = defaultdict(list)
+            persons, houses, ask_df, bid_df = initialize(params)
+            sim_t = 0
+            for i in range(params['NUM_FRAMES']):
+                sim_t += 1
+                persons, houses, ask_df, bid_df = simulate(
+                    params, persons, houses, ask_df, bid_df)
+                update_history(history, persons, houses)
+                print(run_counter, sim_t)
+            run_history[key] = history
+            run_counter += 1
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
