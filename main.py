@@ -270,15 +270,21 @@ def start_sim(n):
     if (n is not None):
         run_counter = 0
         for key, params in runs.items():
+            print('A0')
             history = defaultdict(list)
             persons, houses, ask_df, bid_df = initialize(params)
             sim_t = 0
+            print('A1')
             for i in range(params['NUM_FRAMES']):
                 sim_t += 1
+                print('B0')
                 persons, houses, ask_df, bid_df = simulate(
                     params, persons, houses, ask_df, bid_df)
+                print('B1')
                 update_history(history, persons, houses)
+                print('B2')
                 print(run_counter, sim_t)
+            print('A2')
             run_history[key] = history
             run_counter += 1
         print(run_history)

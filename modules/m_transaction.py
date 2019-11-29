@@ -99,21 +99,21 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
     4. Merge 
     '''
     PROBA_BUY = params['PROBA_BUY']
-
+    print('B041')
     bid_df_columns = bid_df.columns.to_list(
     )  # ['location', 'bidder_id', 'utility_to_buyer', 'max_bid_price', 'bid_price']
 
     # 1. Refresh bid_df pd.DataFrame()
     bid_df.drop(bid_df.index, inplace=True)  # drops all rows
-
+    if len(ask_df) == 0:
+        return persons, houses, bid_df
     # 2. Screen viable bidders
     ## 2.1 Does not own a second house (can have 1 or 0 houses)
     COND_no_second_house = persons['house_selling'].isna(
     )  # NOTE: do not use `persons['house_selling'] == None` to check
     potential_buyers = persons[COND_no_second_house]
-
+    print('B042')
     ## 2.2 Random decide if want to seek or not
-    PROBA_BUY = PROBA_BUY  # arbitrary threshold; TODO: turn into adjustable param
     COND_want_buy = potential_buyers['age'].apply(
         lambda runif: np.random.uniform()) <= PROBA_BUY
     eligible_and_seeking_buyers = potential_buyers[
@@ -135,6 +135,7 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
     ## 3.2 Iterate over buyers
     for idx, buyer in eligible_and_seeking_buyers.iterrows():
         buyer_view_of_ask_df = ask_df.copy()
+        print(ask_df)
 
         ###  3.2.1 Calculate each listing's utility to buyer
         buyer_view_of_ask_df['bidder_id'] = idx
@@ -148,16 +149,19 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
                 'utility_to_buyer']  # TODO: double check if this is a good rule
         # utility came from preceding iter(s). If utility fromp previous is very high, the buyer's max bid price will be lower, all else equal.
         # if bid is successful, the utility_to_buyer of new house will replace previous utility value (from old house)
+        print('B0421')
         buyer_view_of_ask_df['max_bid_price'] = buyer_view_of_ask_df[
             'max_bid_price'].apply(lambda mbp: min(mbp, buyer['wealth']))
         # mbp must be capped at buyer's wealth
+        print('B0422')
         buyer_view_of_ask_df['max_bid_price'] = buyer_view_of_ask_df[
             'max_bid_price'].apply(lambda mbp: max(0, mbp))
         # mbp must be non-negative
-
+        print('B0423')
+        print(buyer_view_of_ask_df)
         bid_price = buyer_view_of_ask_df.apply(_gen_bid_price, axis=1)
         buyer_view_of_ask_df['bid_price'] = bid_price
-
+        print('B0424')
         ### 3.2.3 Mark out second house buyers - updated(weets, 191125)
         buyer_view_of_ask_df['buying_second_house'] = type(
             buyer['house_staying']
@@ -169,7 +173,7 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
             'bid_price', 'buying_second_house'
         ]
         list_of_bid_sets.append(buyer_view_of_ask_df[select_columns])
-
+    print('B043')
     # 4. Concatenate list of dataframes into one dataframe
     if list_of_bid_sets:  # possible that no bids take place
         bid_df = pd.concat(list_of_bid_sets)
@@ -197,6 +201,9 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
     '''
     # 1. Create a container list to store dicts of info relating to bidding for each listing
     list_of_matches = []  # contains info on winning bid
+    match_df = pd.DataFrame()
+    if len(ask_df) == 0:
+        return persons, houses, match_df
 
     # 2. Iterate over listings in ask_df, find best bid - is successful match
     for idx, listing in ask_df.sample(frac=1).iterrows():  # shuffles ask_df
@@ -322,6 +329,8 @@ def update_market_price(params, persons, houses, match_df):
     CA_MULTIPLIER_FAIR = params['CA_MULTIPLIER_FAIR']
 
     # 1. Update market price using info from bid-ask-match data
+    if len(match_df) == 0:
+        return persons, houses
     clean_matches = match_df[~match_df['highest_bid_value'].isna()]
     if len(clean_matches):
         ## 1.1 build linear regression model for market_price

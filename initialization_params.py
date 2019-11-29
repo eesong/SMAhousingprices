@@ -7,8 +7,8 @@ params = {
     'NUM_BORN': lambda: np.random.binomial(10, 0.5),
 
     # geographic
-    'CITY_X': lambda: 5.3,
-    'CITY_Y': lambda: 5.3,
+    'CITY_X': lambda: 9,
+    'CITY_Y': lambda: 9,
     'PREFERRED_LOCATION_X': lambda: 9,
     'PREFERRED_LOCATION_Y': lambda: 9,
 
@@ -34,6 +34,6 @@ params = {
     'PROBA_CA_BAD': 0.1,
 
     # plot
-    'NUM_FRAMES': 10,
+    'NUM_FRAMES': 30,
     'MILLISECS_PER_FRAME': 100,
 }
