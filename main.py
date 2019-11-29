@@ -91,10 +91,7 @@ ouput_content = [
             'value': value
         } for key, value in output_metrics.items()],
         disabled=True),
-    dcc.Graph(
-        id='output-graph',
-        style={'height': 800},
-        config={'displayModeBar': False}),
+    dcc.Graph(id='output-graph', style={'height': 800}),
 ]
 
 main_header = [

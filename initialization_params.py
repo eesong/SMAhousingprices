@@ -24,8 +24,14 @@ params = {
     'LOC_COEF': 500,
 
     # transactions
-    'PROBA_SELL': 0.8,
     'PROBA_BUY': 0.8,
+    'PROBA_SELL_NO_LOSS': 0.8,  # update(weets, 1911228)
+    'PROBA_SELL_WITH_LOSS': 0.4,  # update(weets, 1911228)
+    'CA_MULTIPLIER_FAIR': lambda: np.random.uniform(0.95, 1.05),
+    'CA_MULTIPLIER_GOOD': lambda: np.random.uniform(1.05, 1.2),
+    'CA_MULTIPLIER_BAD': lambda: np.random.uniform(0.75, 0.95),
+    'PROBA_CA_GOOD': 0.025,
+    'PROBA_CA_BAD': 0.1,
 
     # plot
     'NUM_FRAMES': 10,

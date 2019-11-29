@@ -7,12 +7,13 @@ from sklearn.linear_model import LinearRegression
 
 
 def gen_asks(params, persons, houses, ask_df):
-    PROBA_SELL = params['PROBA_SELL']
     ''' phase 2 bid-ask
     1. Refresh ask_df pd.DataFrame()
     2. Add empty houses from `houses` to ask_df
     3. Add more listings from persons who can and want to sell houses
     '''
+    PROBA_SELL_NO_LOSS = params['PROBA_SELL_NO_LOSS']
+    PROBA_SELL_WITH_LOSS = params['PROBA_SELL_WITH_LOSS']
     ask_df_columns = ask_df.columns.to_list(
     )  # ['house_pos','current_occupant_id','amenities', 'ask_price']
 
@@ -39,25 +40,32 @@ def gen_asks(params, persons, houses, ask_df):
     COND_have_house_selling = persons['house_selling'] != None
     potential_sellers = persons[COND_have_house_selling]  # a persons sub df
 
-    ## 3.2 Get sellable houses that have market price >= cost price
+    ## 3.2 Get potential sellable houses
     potential_house_selling_loc = potential_sellers['house_selling']
     potential_house_selling = houses[houses['location'].isin(
         potential_house_selling_loc.values)]
-    COND_market_greater_or_equal_cost_price = potential_house_selling[
-        'market_price'] >= potential_house_selling['last_bought_price']
-    # market_price becomes new ask_price later
+    ## 3.3 Random decide if want to sell or not given market_price vs last_bought_price
 
-    no_loss_house_selling = potential_house_selling[
-        COND_market_greater_or_equal_cost_price]  # a houses subdf
+    ### 3.3.1 Build conditionals to identify houses poorly affected by market but want to sell anyway
+    COND_poor_market = potential_house_selling[
+        'market_price'] < potential_house_selling[
+            'last_bought_price']  # expect loss
+    COND_want_sell_with_loss = potential_house_selling['status'].apply(
+        lambda runif: np.random.uniform(
+        )) <= PROBA_SELL_WITH_LOSS  # lower proba of selling
 
-    ## 3.3 Random decide if want to sell or not
-    PROBA_SELL = PROBA_SELL  # arbitrary threshold; TODO: turn into adjustable param
-    COND_want_sell = no_loss_house_selling['status'].apply(
-        lambda runif: np.random.uniform()) <= PROBA_SELL
-    want_sell_houses = no_loss_house_selling[COND_want_sell]
-    want_sell_houses_loc = want_sell_houses['location']
+    ### 3.3.2 Build conditionals to identify houses well affected by market and want to sell anyway
+    COND_good_market = potential_house_selling[
+        'market_price'] >= potential_house_selling[
+            'last_bought_price']  # no loss
+    COND_want_sell_no_loss = potential_house_selling['status'].apply(
+        lambda runif: np.random.uniform(
+        )) <= PROBA_SELL_NO_LOSS  # higher proba of selling
+
+    ### 3.3.3 Get subdf of actual houses to be listed
     actual_house_selling = potential_house_selling[
-        potential_house_selling['location'].isin(want_sell_houses_loc.values)]
+        (COND_poor_market & COND_want_sell_with_loss) |
+        (COND_good_market & COND_want_sell_no_loss)]
 
     ## 3.4 Rename, reorder actual_house_selling into ask_df column mold
     ## ask_df column order: ['house_pos','current_occupant_id','amenities', 'ask_price']
@@ -258,10 +266,14 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
             if winning_bid['buying_second_house'].iloc[
                     0]:  # first house exists, buyer is buying second house
                 # if type(winning_bidder['house_staying']) is tuple: # first house exists, buyer is buying second house
+                persons['house_selling'].loc[
+                    winning_bidder_id] = "random string to recast type"
                 persons['house_selling'].loc[winning_bidder_id] = winning_bidder[
                     'house_staying']  # set current house_staying to be house_selling
                 houses['status'].loc[winning_bidder[
                     'house_staying']] = 'selling'  # set that same current house to 'selling' status
+            persons['house_staying'].loc[
+                winning_bidder_id] = "random string to recast type"
             persons['house_staying'].loc[winning_bidder_id] = listing_loc
 
             prev_utility = persons['utility'].loc[winning_bidder_id]  # get old
@@ -303,18 +315,57 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
 
 def update_market_price(params, persons, houses, match_df):
 
+    PROBA_CA_GOOD = params['PROBA_CA_GOOD']
+    PROBA_CA_BAD = params['PROBA_CA_BAD']
+    CA_MULTIPLIER_GOOD = params['CA_MULTIPLIER_GOOD']
+    CA_MULTIPLIER_BAD = params['CA_MULTIPLIER_BAD']
+    CA_MULTIPLIER_FAIR = params['CA_MULTIPLIER_FAIR']
+
+    # 1. Update market price using info from bid-ask-match data
     clean_matches = match_df[~match_df['highest_bid_value'].isna()]
     if len(clean_matches):
-        # build linear regression model for market_price
+        ## 1.1 build linear regression model for market_price
         X = clean_matches['amenities'].values.reshape(-1, 1)
         Y = clean_matches['highest_bid_value'].values
         lm = LinearRegression().fit(X, Y)
+
         print('score {} m {} c {}'.format(
             lm.score(X, Y), lm.coef_, lm.intercept_))
 
-        houses_sub = houses[~houses['amenities'].isna()]
-        houses['market_price'] = houses_sub['amenities'].apply(
-            lambda am: lm.predict(np.array(am).reshape(1, -1)).item())
+        ## 1.2 Build market pricer function
+        def _gen_market_pricer():
+            if len(clean_matches
+                  ) >= 10:  # if sufficient transactions occur, use linear model
+                return lambda am: max(
+                    0,
+                    lm.predict(np.array(am).reshape(1, -1)).item())
+            else:
+                return lambda _: clean_matches['highest_bid_value'].median(
+                )  #  if not, just use median of highest bid values
+
+        market_pricer = _gen_market_pricer()
+
+        ## 1.2 Update market prices
+        houses = houses[~houses['amenities'].isna(
+        )]  # drops any rows from houses that do not have an amenities data
+        houses['market_price'] = houses['amenities'].apply(
+            lambda am: market_pricer(am))  # update(weets,191128)
+
+    # 2. Update market price given current affairs
+    def gen_current_affair_multiplier():
+        u = np.random.uniform(0, 1)
+        if u < PROBA_CA_GOOD:
+            return CA_MULTIPLIER_GOOD()
+        elif u < PROBA_CA_GOOD + PROBA_CA_BAD:
+            return CA_MULTIPLIER_BAD()
+        else:
+            return CA_MULTIPLIER_FAIR()
+
+    current_affairs_multipler = gen_current_affair_multiplier(
+    )  # ranges from BAD_LB to GOOD_UB
+    print('CAM', current_affairs_multipler)
+    houses['market_price'] = houses['market_price'].apply(
+        lambda mp: mp * current_affairs_multipler)
     return persons, houses
 
 
