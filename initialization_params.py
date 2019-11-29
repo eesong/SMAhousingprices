@@ -28,6 +28,6 @@ params = {
     'PROBA_BUY': 0.8,
 
     # plot
-    'NUM_FRAMES': 20,
+    'NUM_FRAMES': 10,
     'MILLISECS_PER_FRAME': 100,
 }

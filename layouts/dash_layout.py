@@ -50,7 +50,6 @@ def create_tab_content(content_list, card_list, header=[], footer=[]):
         className="mt-3",
     )
 
-
 def main(content_list):
     return html.Div([dbc.Row([dbc.Col(content) for content in content_list])],)
 

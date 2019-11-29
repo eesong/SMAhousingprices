@@ -28,8 +28,10 @@ server = app.server
 params = init_params
 run_history = {}
 
+scatter_data = [[]]
+
 runs = {'params': params}
-persons, houses, ask_df, bid_df = None, None, None, None
+persons, houses, ask_df, bid_df = initialize(params)
 run_counter = 0
 sim_t = 0
 
@@ -38,9 +40,9 @@ param_names = [
     'INITIAL_WEALTH', 'INITIAL_PRICE', 'AMENITIES_COEF', 'LOC_COEF', 'NUM_BORN'
 ]
 params_lambdas = lambda value: [
-        lambda: value + 100 * np.random.uniform(), lambda: value + 100 * np.
-        random.uniform(), value, value, lambda: np.random.binomial(value, 0.5)
-    ]
+    lambda: value + 100 * np.random.uniform(), lambda: value + 100 * np.random.
+    uniform(), value, value, lambda: np.random.binomial(value, 0.5)
+]
 param_min_max = [
     generate_min_max(100, 50),
     generate_min_max(100, 50),
@@ -52,6 +54,10 @@ slider_labels = [
     'Initialization Wealth Mean', 'Initialization House Price',
     'Amenities Coef', 'Location Coef', 'Number of People Born'
 ]
+output_metrics = {
+    'Mean Market Price': 'mean_market_price',
+    'Occupancy Rate': 'occupancy_rate',
+}
 
 params_content = [
     create_cards_vertical([
@@ -66,24 +72,35 @@ main_content = [
         id='heatmap-graph',
         figure=go.Figure(
             data=go.Heatmap(
-                z=None, y=[i for i in range(10)], x=[i for i in range(10)]),
+                z=[[]], y=[i for i in range(10)], x=[i for i in range(10)]),
             layout=go.Layout(title='Market Prices')),
         style={'height': 800},
         config={'displayModeBar': False}),
     dcc.Interval(
         id='interval-component',
         max_intervals=0,
-        interval=2000,  # in milliseconds
+        interval=1000,  # in milliseconds
         n_intervals=0),
 ]
 
 ouput_content = [
-    dcc.Graph(id='house-status-graph',),
-    dcc.Graph(id='house-occupancy-graph',),
+    dbc.Select(
+        id="output-metric-select",
+        options=[{
+            'label': key,
+            'value': value
+        } for key, value in output_metrics.items()],
+        disabled=True),
+    dcc.Graph(
+        id='output-graph',
+        style={'height': 800},
+        config={'displayModeBar': False}),
 ]
 
 main_header = [
-    dbc.Button("Start Simulation!", id="start-button", className="mr-2"),
+    dbc.Button(
+        "Start Simulation!", id="start-button", disabled=True,
+        className="mr-2"),
 ]
 
 main_cards = [
@@ -97,7 +114,7 @@ params_tab = create_tab_content([params_content], [])
 output_tab = create_tab_content([ouput_content], [])
 
 tabs = create_tabs([params_tab, main_tab, output_tab],
-                   ['Set Parameters', 'Main', 'Outputs'])
+                   ['Set Parameters', 'Start Simulation', 'Generate Outputs'])
 navbar = create_navbar()
 app.layout = html.Div([navbar, tabs])
 
@@ -173,6 +190,7 @@ def update_slider_value(*args):
     Output('heatmap-graph', 'figure'),
     [Input('interval-component', 'n_intervals')])
 def update_heatmap_graph(n):
+    global heatmap_data
     heatmap_data = [[
         round(houses.iloc[i + j * 10]['market_price'], 2) for i in range(10)
     ] for j in range(10)]
@@ -195,52 +213,39 @@ def update_run_count(n):
 
 
 @app.callback(
-    Output('house-status-graph', 'figure'),
-    [Input('interval-component', 'n_intervals')])
-def gen_market_price_graph(n):
-    if len(run_history) == len(runs):
-        X = [i for i in range(len(run_history[list(run_history.keys())[0]]['mean_market_price']))]
-        data = [ go.Scatter(x=X, y=Y['mean_market_price'], name=key) for key, Y in run_history.items() ]
-        return {
-            'data': data,
-            'layout':
-                go.Layout(
-                    xaxis=dict(range=[min(X), max(X)]),
-                    yaxis=dict(
-                        range=[
-                            min([min(Y['mean_market_price']) for key, Y in run_history.items()]), 
-                            max([max(Y['mean_market_price']) for key, Y in run_history.items()])]),
-                )
-        }
-
-
-@app.callback(
-    Output('house-occupancy-graph', 'figure'),
-    [Input('interval-component', 'n_intervals')])
-def gen_occupancy_rate_graph(n):
-    if len(run_history) == len(runs):
-        X = [i for i in range(len(run_history[list(run_history.keys())[0]]['mean_market_price']))]
-        data = [ go.Scatter(x=X, y=Y['occupancy_rate'], name=key) for key, Y in run_history.items() ]
-        return {
-            'data': data,
-            'layout':
-                go.Layout(
-                    xaxis=dict(range=[min(X), max(X)]),
-                    yaxis=dict(
-                        range=[
-                            min([min(Y['occupancy_rate']) for key, Y in run_history.items()]), 
-                            max([max(Y['occupancy_rate']) for key, Y in run_history.items()])]),
-                )
-        }
+    Output('output-graph', 'figure'), [Input('output-metric-select', 'value')])
+def gen_market_price_graph(metric_key):
+    global scatter_data
+    X = [
+        i for i in range(
+            len(run_history[list(run_history.keys())[0]][metric_key]))
+    ]
+    scatter_data = [
+        go.Scatter(x=X, y=Y[metric_key], name=key)
+        for key, Y in run_history.items()
+    ]
+    return {
+        'data':
+            scatter_data,
+        'layout':
+            go.Layout(
+                xaxis=dict(range=[min(X), max(X)]),
+                yaxis=dict(range=[
+                    min([min(Y[metric_key]) for key, Y in run_history.items()]),
+                    max([max(Y[metric_key]) for key, Y in run_history.items()])
+                ]),
+            )
+    }
 
 
 ###################################### Buttons ######################################
 
 
-@app.callback(
+@app.callback([
     Output('interval-component', 'max_intervals'),
-    [Input('set-params-button', 'n_clicks'),
-     Input('vary-selection', 'value')])
+    Output('start-button', 'disabled')
+], [Input('set-params-button', 'n_clicks'),
+    Input('vary-selection', 'value')])
 def set_params(n, selected_index):
     if n and (n > 0):
         global runs, persons, houses, ask_df, bid_df
@@ -252,15 +257,16 @@ def set_params(n, selected_index):
         ]
         for val in param_to_vary_vals:
             params[param_to_vary] = params_lambdas(val)[selected_index]
-            runs[str(param_to_vary) + ' = ' +str(val)] = params
-        return -1
+            runs[str(param_to_vary) + ' = ' + str(val)] = params
+        return -1, False
     else:
-        return 0
+        return 0, True
 
 
-@app.callback(
+@app.callback([
     Output("sim-completion-text", "children"),
-    [Input('start-button', 'n_clicks')])
+    Output('output-metric-select', 'disabled')
+], [Input('start-button', 'n_clicks')])
 def start_sim(n):
     global sim_t, run_counter, run_history
     global persons, houses, ask_df, bid_df
@@ -278,8 +284,9 @@ def start_sim(n):
                 print(run_counter, sim_t)
             run_history[key] = history
             run_counter += 1
-        return 1
-    return 0
+        print(run_history)
+        return 1, False
+    return 0, True
 
 
 if __name__ == "__main__":
