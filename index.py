@@ -159,7 +159,7 @@ def update_slider_value(*args):
     for index, value in enumerate(args):
         name = param_names[index]
         params[name] = params_lambdas(value)[index]
-        output.append(value)
+        output.append(round(value, 2))
     return tuple(output)
 
 

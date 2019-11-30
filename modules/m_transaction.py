@@ -23,8 +23,8 @@ def gen_asks(params, persons, houses, ask_df):
     # 2. Add empty houses from `houses` to ask_df
     empty_houses = houses[houses['status'] == 'empty']
 
-    ## 2.1 Rename, reorder into ask_df column mold
-    ## ask_df column order: ['house_pos','current_occupant_id','amenities', 'ask_price']
+    # 2.1 Rename, reorder into ask_df column mold
+    # ask_df column order: ['house_pos','current_occupant_id','amenities', 'ask_price']
     empty_houses_listing = empty_houses.rename(columns={
         'occupant': 'occupant_id',
         'last_bought_price': 'ask_price',
@@ -36,17 +36,17 @@ def gen_asks(params, persons, houses, ask_df):
         empty_houses_listing, ignore_index=True)  # TODO: optimise
 
     # 3. Add more listings from `persons` who can and want to sell houses
-    ## 3.1 get sub df of persons who have a second house to sell
+    # 3.1 get sub df of persons who have a second house to sell
     COND_have_house_selling = persons['house_selling'] != None
     potential_sellers = persons[COND_have_house_selling]  # a persons sub df
 
-    ## 3.2 Get potential sellable houses
+    # 3.2 Get potential sellable houses
     potential_house_selling_loc = potential_sellers['house_selling']
     potential_house_selling = houses[houses['location'].isin(
         potential_house_selling_loc.values)]
-    ## 3.3 Random decide if want to sell or not given market_price vs last_bought_price
+    # 3.3 Random decide if want to sell or not given market_price vs last_bought_price
 
-    ### 3.3.1 Build conditionals to identify houses poorly affected by market but want to sell anyway
+    # 3.3.1 Build conditionals to identify houses poorly affected by market but want to sell anyway
     COND_poor_market = potential_house_selling[
         'market_price'] < potential_house_selling[
             'last_bought_price']  # expect loss
@@ -54,7 +54,7 @@ def gen_asks(params, persons, houses, ask_df):
         lambda runif: np.random.uniform(
         )) <= PROBA_SELL_WITH_LOSS  # lower proba of selling
 
-    ### 3.3.2 Build conditionals to identify houses well affected by market and want to sell anyway
+    # 3.3.2 Build conditionals to identify houses well affected by market and want to sell anyway
     COND_good_market = potential_house_selling[
         'market_price'] >= potential_house_selling[
             'last_bought_price']  # no loss
@@ -62,13 +62,13 @@ def gen_asks(params, persons, houses, ask_df):
         lambda runif: np.random.uniform(
         )) <= PROBA_SELL_NO_LOSS  # higher proba of selling
 
-    ### 3.3.3 Get subdf of actual houses to be listed
+    # 3.3.3 Get subdf of actual houses to be listed
     actual_house_selling = potential_house_selling[
         (COND_poor_market & COND_want_sell_with_loss) |
         (COND_good_market & COND_want_sell_no_loss)]
 
-    ## 3.4 Rename, reorder actual_house_selling into ask_df column mold
-    ## ask_df column order: ['house_pos','current_occupant_id','amenities', 'ask_price']
+    # 3.4 Rename, reorder actual_house_selling into ask_df column mold
+    # ask_df column order: ['house_pos','current_occupant_id','amenities', 'ask_price']
     main_listing = actual_house_selling.rename(columns={
         'market_price': 'ask_price',
         'occupant': 'occupant_id'
@@ -99,7 +99,7 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
     4. Merge 
     '''
     PROBA_BUY = params['PROBA_BUY']
-    print('B041')
+    # print('B041')
     bid_df_columns = bid_df.columns.to_list(
     )  # ['location', 'bidder_id', 'utility_to_buyer', 'max_bid_price', 'bid_price']
 
@@ -108,12 +108,12 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
     if len(ask_df) == 0:
         return persons, houses, bid_df
     # 2. Screen viable bidders
-    ## 2.1 Does not own a second house (can have 1 or 0 houses)
+    # 2.1 Does not own a second house (can have 1 or 0 houses)
     COND_no_second_house = persons['house_selling'].isna(
     )  # NOTE: do not use `persons['house_selling'] == None` to check
     potential_buyers = persons[COND_no_second_house]
-    print('B042')
-    ## 2.2 Random decide if want to seek or not
+    # print('B042')
+    # 2.2 Random decide if want to seek or not
     COND_want_buy = potential_buyers['age'].apply(
         lambda runif: np.random.uniform()) <= PROBA_BUY
     eligible_and_seeking_buyers = potential_buyers[
@@ -122,7 +122,7 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
     # 3. Each eligible buyer makes a bid for each house on sale
     list_of_bid_sets = []  # to be populated with df corr. to each person's bids
 
-    ## 3.1 Define helper fn
+    # 3.1 Define helper fn
     def _gen_bid_price(listing_row):
         max_bid_price = listing_row['max_bid_price']
         ask_price = listing_row['ask_price']
@@ -132,48 +132,48 @@ def gen_bids(params, persons, houses, ask_df, bid_df):
         else:
             return max_bid_price
 
-    ## 3.2 Iterate over buyers
+    # 3.2 Iterate over buyers
     for idx, buyer in eligible_and_seeking_buyers.iterrows():
         buyer_view_of_ask_df = ask_df.copy()
-        print(ask_df)
+        # print(ask_df)
 
-        ###  3.2.1 Calculate each listing's utility to buyer
+        # 3.2.1 Calculate each listing's utility to buyer
         buyer_view_of_ask_df['bidder_id'] = idx
         buyer_view_of_ask_df['utility_to_buyer'] = utility_function_vectorised(
             params, buyer, buyer_view_of_ask_df)  # person, house
         # NOTE: utility_to_buyer is partial -- it only consider's a houses's general and locational utility and buyer idio
 
-        ### 3.2.2 Calculate bid_price
+        # 3.2.2 Calculate bid_price
         buyer_view_of_ask_df['max_bid_price'] = buyer['wealth'] - buyer[
             'utility'] + buyer_view_of_ask_df[
                 'utility_to_buyer']  # TODO: double check if this is a good rule
         # utility came from preceding iter(s). If utility fromp previous is very high, the buyer's max bid price will be lower, all else equal.
         # if bid is successful, the utility_to_buyer of new house will replace previous utility value (from old house)
-        print('B0421')
+        # print('B0421')
         buyer_view_of_ask_df['max_bid_price'] = buyer_view_of_ask_df[
             'max_bid_price'].apply(lambda mbp: min(mbp, buyer['wealth']))
         # mbp must be capped at buyer's wealth
-        print('B0422')
+        # print('B0422')
         buyer_view_of_ask_df['max_bid_price'] = buyer_view_of_ask_df[
             'max_bid_price'].apply(lambda mbp: max(0, mbp))
         # mbp must be non-negative
-        print('B0423')
-        print(buyer_view_of_ask_df)
+        # print('B0423')
+        # print(buyer_view_of_ask_df)
         bid_price = buyer_view_of_ask_df.apply(_gen_bid_price, axis=1)
         buyer_view_of_ask_df['bid_price'] = bid_price
-        print('B0424')
-        ### 3.2.3 Mark out second house buyers - updated(weets, 191125)
+        # print('B0424')
+        # 3.2.3 Mark out second house buyers - updated(weets, 191125)
         buyer_view_of_ask_df['buying_second_house'] = type(
             buyer['house_staying']
         ) == tuple  # if have house_staying location tuple, then is buying second house
 
-        ### 3.2.4 Append specific columns of buyer_view_of_ask_df to list_of_bid_sets
+        # 3.2.4 Append specific columns of buyer_view_of_ask_df to list_of_bid_sets
         select_columns = [
             'location', 'bidder_id', 'utility_to_buyer', 'max_bid_price',
             'bid_price', 'buying_second_house'
         ]
         list_of_bid_sets.append(buyer_view_of_ask_df[select_columns])
-    print('B043')
+    # print('B043')
     # 4. Concatenate list of dataframes into one dataframe
     if list_of_bid_sets:  # possible that no bids take place
         bid_df = pd.concat(list_of_bid_sets)
@@ -209,7 +209,7 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
     for idx, listing in ask_df.sample(frac=1).iterrows():  # shuffles ask_df
         match_info_dict = {}  # stats for each listing match
 
-        ## 2.1 Get general data
+        # 2.1 Get general data
         listing_loc = listing['location']
         match_info_dict['location'] = listing_loc
 
@@ -230,15 +230,15 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
         # 3. Found winning bid(s)
         if highest_bid_value >= listing[
                 'ask_price']:  # there exists a successful match; NaN compatible
-            ## 3.1 Create and append dict of info relating to bids for the listing
-            ### 3.1.1 Check for ties among highest bid
+            # 3.1 Create and append dict of info relating to bids for the listing
+            # 3.1.1 Check for ties among highest bid
             highest_bids = relevant_bids[relevant_bids['bid_price'] ==
                                          highest_bid_value]
             num_highest_bid = len(
                 highest_bids)  # expect at least 1, unlikely but possibly more
             assert num_highest_bid >= 1, 'ERR: num_highest_bid must be >= 1'
 
-            ### 3.1.2 Get the winner
+            # 3.1.2 Get the winner
             winning_bid = highest_bids.sample(
                 1)  # tie-breaker: randomly choose one highest bidder to win
 
@@ -247,17 +247,17 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
             match_info_dict[
                 'winning_bid_value'] = highest_bid_value  # obviously; but stated explicitly as highest_bid_value may not win for the `else` case
 
-            ### 3.1.3 Append match info
+            # 3.1.3 Append match info
             list_of_matches.append(match_info_dict)
 
-            ## 3.2 Remove all corresponding bids, 3.3 Remove all other bids by same bidder
+            # 3.2 Remove all corresponding bids, 3.3 Remove all other bids by same bidder
             bid_df = bid_df.drop(relevant_bids.index, axis=0)
             bid_df = bid_df[~(bid_df['bidder_id'] == winning_bidder_id)]
 
-            ## 3.4 Update asker and bidder
+            # 3.4 Update asker and bidder
             asker_id = listing['occupant_id']
 
-            ### 3.4.1 Update asker
+            # 3.4.1 Update asker
             if type(asker_id) is str:  # if str, then not empty house
                 persons['wealth'].loc[asker_id] += highest_bid_value
                 persons['house_selling'].loc[
@@ -265,11 +265,11 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
                 # weets: asker utility does not increase on sale of house. Utility will be utility of the house staying, given the price the person bought it at.
                 # thus, sales of second house does not affect asker's utility
 
-            ### 3.4.2 Update bidder
+            # 3.4.2 Update bidder
             winning_bidder = persons.loc[winning_bidder_id]
             persons['wealth'].loc[winning_bidder_id] -= highest_bid_value
 
-            #### Additional updates for bidder if second house buyer
+            # Additional updates for bidder if second house buyer
             if winning_bid['buying_second_house'].iloc[
                     0]:  # first house exists, buyer is buying second house
                 # if type(winning_bidder['house_staying']) is tuple: # first house exists, buyer is buying second house
@@ -290,7 +290,7 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
             # print('Utility change:',persons['utility'].loc[winning_bidder_id] - prev_utility) # should be non-negative
             # TODO: check where to update 'utility' (person's simulation score) -- here or elsewhere?
             # ENSURE: asker['utility'] increase or stay the same
-            ### 3.4.3 Update house
+            # 3.4.3 Update house
             houses['last_bought_price'].loc[listing_loc] = highest_bid_value
             houses['status'].loc[listing_loc] = 'occupied'
             # Note: for second house buyers, their first house's status has already been updated
@@ -300,12 +300,12 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
 
         # 4. No successful match
         else:
-            ## 4.1 Create and append dict of info relating to bids for the listing
+            # 4.1 Create and append dict of info relating to bids for the listing
             match_info_dict['winning_bidder_id'] = np.NaN
             match_info_dict['winning_bid_value'] = np.NaN
             list_of_matches.append(match_info_dict)
 
-            ## 4.2 Remove all bids for same listing
+            # 4.2 Remove all bids for same listing
             bid_df = bid_df.drop(relevant_bids.index, axis=0)
 
     # 5. Make match_df
@@ -333,7 +333,7 @@ def update_market_price(params, persons, houses, match_df):
         return persons, houses
     clean_matches = match_df[~match_df['highest_bid_value'].isna()]
     if len(clean_matches):
-        ## 1.1 build linear regression model for market_price
+        # 1.1 build linear regression model for market_price
         X = clean_matches['amenities'].values.reshape(-1, 1)
         Y = clean_matches['highest_bid_value'].values
         lm = LinearRegression().fit(X, Y)
@@ -341,20 +341,20 @@ def update_market_price(params, persons, houses, match_df):
         print('score {} m {} c {}'.format(
             lm.score(X, Y), lm.coef_, lm.intercept_))
 
-        ## 1.2 Build market pricer function
+        # 1.2 Build market pricer function
         def _gen_market_pricer():
             if len(clean_matches
-                  ) >= 10:  # if sufficient transactions occur, use linear model
+                   ) >= 10:  # if sufficient transactions occur, use linear model
                 return lambda am: max(
                     0,
                     lm.predict(np.array(am).reshape(1, -1)).item())
             else:
                 return lambda _: clean_matches['highest_bid_value'].median(
-                )  #  if not, just use median of highest bid values
+                )  # if not, just use median of highest bid values
 
         market_pricer = _gen_market_pricer()
 
-        ## 1.2 Update market prices
+        # 1.2 Update market prices
         houses = houses[~houses['amenities'].isna(
         )]  # drops any rows from houses that do not have an amenities data
         houses['market_price'] = houses['amenities'].apply(
@@ -390,7 +390,8 @@ def utility_general(params, house):
     utility_due_to_location = 2 / (1 + (house["location"][0] - CITY_X)**2 +
                                    (house["location"][1] - CITY_Y)**2)
 
-    return utility_due_to_location + house["amenities"]  # UPDATE(weets, 191125)
+    # UPDATE(weets, 191125)
+    return utility_due_to_location + house["amenities"]
 
 
 def utility_function(params, person, house):
