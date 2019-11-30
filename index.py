@@ -80,8 +80,13 @@ def params_lambdas(value): return [
 
 
 output_metrics = {
-    'Mean Market Price': 'mean_market_price',
-    'Occupancy Rate': 'occupancy_rate',
+    'Mean Market Price of Houses': 'mean_market_price',
+    'Occupancy Rate of Houses': 'occupancy_rate',
+    'Standard Deviation of Market Price of Houses': 'sd_market_price',
+    'Homelessness Rate of Persons': 'homeless_rate',
+    'Total Utility of Persons': 'total_utility',
+    'Standard Deviation of Utility of Persons': 'sd_utility',
+    'Transactions Made': 'transactions_made',
 }
 
 params_content = [
@@ -265,7 +270,7 @@ def gen_market_price_graph(metric_key):
 @app.callback([
     Output('interval-component', 'max_intervals'),
     Output('start-button', 'disabled'),
-    Output('table', 'children')
+    Output('table', 'children'),
 ], [Input('set-params-button', 'n_clicks'),
     Input('vary-selection', 'value')])
 def set_params(n, selected_index):
@@ -279,8 +284,9 @@ def set_params(n, selected_index):
             i * param_min_max[selected_index][2] for i in range(10)
         ]
         for val in param_to_vary_vals:
-            params[param_to_vary] = params_lambdas(val)[selected_index]
-            runs[str(param_to_vary) + ' = ' + str(val)] = params
+            run_params = copy.deepcopy(params)
+            run_params[param_to_vary] = params_lambdas(val)[selected_index]
+            runs[str(param_to_vary) + ' = ' + str(val)] = run_params
         return -1, False, table
     else:
         return 0, True, table
@@ -296,21 +302,22 @@ def start_sim(n):
     if (n is not None):
         run_counter = 0
         for key, params in runs.items():
-            print('A0')
+            # print('A0')
+            print('Now running for: ', params)
             history = defaultdict(list)
             persons, houses, ask_df, bid_df = initialize(params)
             sim_t = 0
-            print('A1')
+            # print('A1')
             for i in range(params['NUM_FRAMES']):
                 sim_t += 1
-                print('B0')
-                persons, houses, ask_df, bid_df = simulate(
+                # print('B0')
+                persons, houses, ask_df, bid_df, match_df = simulate(
                     params, persons, houses, ask_df, bid_df)
-                print('B1')
-                update_history(history, persons, houses)
-                print('B2')
+                # print('B1')
+                update_history(history, persons, houses, match_df)
+                # print('B2')
                 print(run_counter, sim_t)
-            print('A2')
+            # print('A2')
             run_history[key] = history
             run_counter += 1
         print(run_history)

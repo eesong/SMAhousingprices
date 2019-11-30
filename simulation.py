@@ -16,6 +16,7 @@ def simulate(params, persons, houses, ask_df, bid_df):
     # print('B04')
     persons, houses, bid_df = gen_bids(params, persons, houses, ask_df, bid_df)
     # print('B05')
+
     persons, houses, match_df = match_ask_bid(params, persons, houses, ask_df,
                                               bid_df)
     # print('B06')
@@ -28,10 +29,10 @@ def simulate(params, persons, houses, ask_df, bid_df):
     # print('B08')
     houses.index = houses.index.map(convert_to_tuple_int)
     # print('B09')
-    return persons, houses, ask_df, bid_df
+    return persons, houses, ask_df, bid_df, match_df
 
 
-def update_history(history, persons, houses, verbose=False):
+def update_history(history, persons, houses, match_df, verbose=False):
     # history["popn_with_zero_house"].append(
     #     (persons.house_staying.values != persons.house_staying.values).sum())
     # history["popn_with_one_house"].append(
@@ -44,10 +45,20 @@ def update_history(history, persons, houses, verbose=False):
     # history["total_houses_selling"].append((houses.status == "selling").sum())
     # print('B10')
     history["mean_market_price"].append((houses.market_price).mean())
+    history["sd_market_price"].append((houses.market_price).std())
     # print('B11')
-    history["occupancy_rate"].append(houses.occupant.count() /
+    history["transactions_made"].append(
+        (match_df.winning_bidder_id.values ==
+         match_df.winning_bidder_id.values).sum()
+    )
+    history["occupancy_rate"].append((houses.status == "occupied").sum() /
                                      houses.location.count())
-
+    history["homeless_rate"].append(
+        (persons.house_staying.values !=
+         persons.house_staying.values).sum()/persons.age.count()
+    )
+    history["total_utility"].append((persons.utility).mean())
+    history["sd_utility"].append((persons.utility).std())
     return None
 
 

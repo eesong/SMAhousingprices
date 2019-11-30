@@ -10,7 +10,8 @@ from common import func2str
 def create_navbar():
     return dbc.NavbarSimple(
         children=[
-            html.Div(id='refresh_time', className='mr-3 mt-2 text-muted'),
+            html.Div('Refresh to run new simulation. ',
+                     id='refresh_time', className='mr-3 mt-2 text-muted'),
             # dbc.Button(
             #     "Refresh",
             #     id='button_refresh',

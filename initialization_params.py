@@ -34,6 +34,6 @@ params = {
     'PROBA_CA_BAD': 0.1,
 
     # plot
-    'NUM_FRAMES': 30,
+    'NUM_FRAMES': 50,
     'MILLISECS_PER_FRAME': 100,
 }
