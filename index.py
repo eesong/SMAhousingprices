@@ -120,7 +120,7 @@ ouput_content = [
         } for key, value in output_metrics.items()],
         disabled=False),
     dcc.Graph(id='output-graph', style={'height': 800}),
-    params_card(params),
+    html.Div(id='table')
 ]
 
 main_cards = [
@@ -264,12 +264,14 @@ def gen_market_price_graph(metric_key):
 
 @app.callback([
     Output('interval-component', 'max_intervals'),
-    Output('start-button', 'disabled')
+    Output('start-button', 'disabled'),
+    Output('table', 'children')
 ], [Input('set-params-button', 'n_clicks'),
     Input('vary-selection', 'value')])
 def set_params(n, selected_index):
+    global runs, persons, houses, ask_df, bid_df
+    table = params_card(runs[list(runs.keys())[0]])
     if n and (n > 0):
-        global runs, persons, houses, ask_df, bid_df
         runs = {}
         param_to_vary = param_names[selected_index]
         param_to_vary_vals = [
@@ -279,9 +281,9 @@ def set_params(n, selected_index):
         for val in param_to_vary_vals:
             params[param_to_vary] = params_lambdas(val)[selected_index]
             runs[str(param_to_vary) + ' = ' + str(val)] = params
-        return -1, False
+        return -1, False, table
     else:
-        return 0, True
+        return 0, True, table
 
 
 @app.callback([

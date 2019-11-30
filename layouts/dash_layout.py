@@ -62,7 +62,7 @@ def params_card(params_dict):
         hover=True,
         responsive=True,
         striped=True,
-        className='small'
+        className='small',
     )
     return table
 
