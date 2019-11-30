@@ -284,8 +284,9 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
             persons['house_staying'].loc[winning_bidder_id] = listing_loc
 
             prev_utility = persons['utility'].loc[winning_bidder_id]  # get old
-            persons['utility'].loc[winning_bidder_id] = winning_bid[
-                'utility_to_buyer'].iloc[0]  # set new utility
+            persons['utility'].loc[winning_bidder_id] = winning_bid['utility_to_buyer'].iloc[0] + \
+                persons['wealth'].loc[winning_bidder_id] - \
+                highest_bid_value  # set new utility
 
             # print('Utility change:',persons['utility'].loc[winning_bidder_id] - prev_utility) # should be non-negative
             # TODO: check where to update 'utility' (person's simulation score) -- here or elsewhere?
