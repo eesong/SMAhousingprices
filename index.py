@@ -1,5 +1,5 @@
 from modules.m_initialization import initialize
-from layouts.dash_layout import create_tabs, main, create_cards_horizontal, create_card, create_tab_content, create_navbar, create_slider, create_cards_vertical
+from layouts.dash_layout import create_tabs, main, create_cards_horizontal, create_card, create_tab_content, create_navbar, create_slider, params_card, create_radio
 from initialization_params import params as init_params
 from common import generate_min_max
 from simulation import simulate, update_history
@@ -22,7 +22,7 @@ import plotly.express as px
 
 # from layouts.dash_layout import create_tabs, main, create_cards_horizontal, create_card, create_tab_content, create_navbar
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL])
 server = app.server
 
 params = init_params
@@ -35,32 +35,57 @@ persons, houses, ask_df, bid_df = initialize(params)
 run_counter = 0
 sim_t = 0
 
-param_ids = ['init-wealth', 'init-price', 'amen-coef', 'loc-coef', 'no-born']
-param_names = [
-    'INITIAL_WEALTH', 'INITIAL_PRICE', 'AMENITIES_COEF', 'LOC_COEF', 'NUM_BORN'
+param_ids = [
+    'init-wealth',
+    'init-price',
+    'amen-coef',
+    'loc-coef',
+    'no-born',
+    'prob-buy',
 ]
-params_lambdas = lambda value: [
-    lambda: value + 100 * np.random.uniform(), lambda: value + 100 * np.random.
-    uniform(), value, value, lambda: np.random.binomial(value, 0.5)
+param_names = [
+    'INITIAL_WEALTH',
+    'INITIAL_PRICE',
+    'AMENITIES_COEF',
+    'LOC_COEF',
+    'NUM_BORN',
+    'PROBA_BUY',
 ]
 param_min_max = [
     generate_min_max(100, 50),
     generate_min_max(100, 50),
     generate_min_max(100, 100),
     generate_min_max(100, 100),
-    generate_min_max(10, 2)
+    generate_min_max(10, 2),
+    generate_min_max(0, .1),
 ]
 slider_labels = [
-    'Initialization Wealth Mean', 'Initialization House Price',
-    'Amenities Coef', 'Location Coef', 'Number of People Born'
+    'Initialization Wealth Mean',
+    'Initialization House Price',
+    'Amenities Coef',
+    'Location Coef',
+    'Number of People Born',
+    'Probability of Buying Intention'
 ]
+
+
+def params_lambdas(value): return [
+    lambda: value + 100 * np.random.uniform(),
+    lambda: value + 100 * np.random.uniform(),
+    value,
+    value,
+    lambda: np.random.binomial(value, 0.5),
+    value
+]
+
+
 output_metrics = {
     'Mean Market Price': 'mean_market_price',
     'Occupancy Rate': 'occupancy_rate',
 }
 
 params_content = [
-    create_cards_vertical([
+    create_radio([
         create_slider(slider_labels[i], param_ids[i], param_min_max[i])
         for i in range(len(param_names))
     ]),
@@ -68,6 +93,9 @@ params_content = [
 ]
 
 main_content = [
+    dbc.Button(
+        "Start Simulation!", id="start-button", disabled=True,
+        className="m-3"),
     dcc.Graph(
         id='heatmap-graph',
         figure=go.Figure(
@@ -90,14 +118,9 @@ ouput_content = [
             'label': key,
             'value': value
         } for key, value in output_metrics.items()],
-        disabled=True),
+        disabled=False),
     dcc.Graph(id='output-graph', style={'height': 800}),
-]
-
-main_header = [
-    dbc.Button(
-        "Start Simulation!", id="start-button", disabled=True,
-        className="mr-2"),
+    params_card(params),
 ]
 
 main_cards = [
@@ -106,7 +129,7 @@ main_cards = [
     create_card('sim-completion-text', 0, '', 'Simulation complete', 1),
 ]
 
-main_tab = create_tab_content([main_content], main_cards, header=main_header)
+main_tab = create_tab_content([main_content], main_cards)
 params_tab = create_tab_content([params_content], [])
 output_tab = create_tab_content([ouput_content], [])
 
@@ -121,7 +144,7 @@ app.layout = html.Div([navbar, tabs])
 @app.callback([Output(name + '-slider', 'disabled') for name in param_ids],
               [Input('vary-selection', 'value')])
 def disable_inputs(selected_index):
-    output = [False, False, False, False, False]
+    output = [False for i in range(len(param_names))]
     output[selected_index] = True
     output = tuple(output)
     return output
@@ -228,7 +251,8 @@ def gen_market_price_graph(metric_key):
             go.Layout(
                 xaxis=dict(range=[min(X), max(X)]),
                 yaxis=dict(range=[
-                    min([min(Y[metric_key]) for key, Y in run_history.items()]),
+                    min([min(Y[metric_key])
+                         for key, Y in run_history.items()]),
                     max([max(Y[metric_key]) for key, Y in run_history.items()])
                 ]),
             )

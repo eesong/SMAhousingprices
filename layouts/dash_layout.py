@@ -1,21 +1,23 @@
 from dash.dependencies import Input, Output
+import pandas as pd
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
+from common import func2str
 
 
 def create_navbar():
     return dbc.NavbarSimple(
         children=[
             html.Div(id='refresh_time', className='mr-3 mt-2 text-muted'),
-            dbc.Button(
-                "Refresh",
-                id='button_refresh',
-                color="primary",
-                className="mr-1")
+            # dbc.Button(
+            #     "Refresh",
+            #     id='button_refresh',
+            #     color="primary",
+            #     className="mr-1")
         ],
-        brand="Jobtech Dashboard",
+        brand="Housing Prices Simulation",
         brand_href="#",
         sticky="top",
     )
@@ -34,9 +36,35 @@ def create_card(id, value, unit, name, threshold=None):
                 className=f"card-title {styling}"),
             html.H6(name, className="small"),
         ],
-                     className="align-items-center"),
+            className="align-items-center"),
         className="text-center",
     )
+
+
+def params_card(params_dict):
+
+    table_header = [
+        html.Thead(html.Tr([html.Th("Parameter"), html.Th("Value")]))
+    ]
+
+    rows = []
+    for key, value in params_dict.items():
+        if callable(value):
+            value = func2str(value)
+        row = html.Tr([html.Td(str(key)), html.Td(str(value))])
+        rows.append(row)
+
+    table_body = [html.Tbody(rows)]
+
+    table = dbc.Table(
+        table_header + table_body,
+        bordered=True,
+        hover=True,
+        responsive=True,
+        striped=True,
+        className='small'
+    )
+    return table
 
 
 def create_tab_content(content_list, card_list, header=[], footer=[]):
@@ -50,6 +78,7 @@ def create_tab_content(content_list, card_list, header=[], footer=[]):
         className="mt-3",
     )
 
+
 def main(content_list):
     return html.Div([dbc.Row([dbc.Col(content) for content in content_list])],)
 
@@ -60,7 +89,7 @@ def create_cards_horizontal(card_list):
     ])
 
 
-def create_cards_vertical(card_list):
+def create_radio(card_list):
     return dbc.Row([
         dbc.Col(
             dbc.FormGroup([
@@ -70,14 +99,23 @@ def create_cards_vertical(card_list):
                     } for i in range(len(card_list))],
                     value=0,
                     id="vary-selection",
-                    inputClassName='py-5',
+                    inputClassName='py-5 my-3',
+                    # className='d-flex flex-column justify-content-between'
                 ),
             ]),
-            className='text-right',
-            style={'max-width': 50}),
-        html.Div([dbc.Row([dbc.Col(card)]) for card in card_list],
-                 className='d-flex flex-column justify-content-between'),
+            style={'max-width': 50},
+            align="center",
+        ),
+        dbc.Col(
+            html.Div([html.Div(card) for card in card_list],
+                     className='d-flex flex-column justify-content-between')
+        ),
     ])
+
+
+def create_cards_vertical(card_list):
+    return html.Div([
+        html.Div(card) for card in card_list])
 
 
 def create_tabs(tab_content_list, tab_name_list):
@@ -101,5 +139,5 @@ def create_slider(label, name, values):
             ),
             html.Div(id=name + '-slider-output', className='text-right small'),
         ]),
-        style={'width': 400},
+        style={'width': 500},
         className='m-2')
