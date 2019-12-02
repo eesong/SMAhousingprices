@@ -32,6 +32,7 @@ params = {
     'CA_MULTIPLIER_BAD': lambda: np.random.uniform(0.75, 0.95),
     'PROBA_CA_GOOD': 0.025,
     'PROBA_CA_BAD': 0.1,
+    'MIN_TXN_VOL': 5,
 
     # plot
     'NUM_FRAMES': 50,

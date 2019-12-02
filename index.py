@@ -54,8 +54,8 @@ param_names = [
 param_min_max = [
     generate_min_max(100, 50),
     generate_min_max(100, 50),
-    generate_min_max(0, .1),
-    generate_min_max(0, .1),
+    generate_min_max(0, .5),
+    generate_min_max(0, .5),
     generate_min_max(10, 2),
     generate_min_max(0, .1),
 ]
@@ -167,47 +167,6 @@ def update_slider_value(*args):
         output.append(round(value, 2))
     return tuple(output)
 
-
-# @app.callback(
-#     Output('init-wealth-slider-output', 'children'),
-#     [Input('init-wealth-slider', 'value')])
-# def update_init_wealth(value):
-#     global params
-#     params['INITIAL_WEALTH'] = lambda: value + 100 * np.random.uniform()
-#     return f'{value}'
-
-# @app.callback(
-#     Output('init-price-slider-output', 'children'),
-#     [Input('init-price-slider', 'value')])
-# def update_init_price(value):
-#     global params
-#     params['INITIAL_PRICE'] = lambda: value + 100 * np.random.uniform()
-#     return f'{value}'
-
-# @app.callback(
-#     Output('amen-coef-slider-output', 'children'),
-#     [Input('amen-coef-slider', 'value')])
-# def update_amen_coef(value):
-#     global params
-#     params['INITIAL_WEALTH'] = value
-#     return f'{value}'
-
-# @app.callback(
-#     Output('loc-coef-slider-output', 'children'),
-#     [Input('loc-coef-slider', 'value')])
-# def update_loc_coef(value):
-#     global params
-#     params['INITIAL_PRICE'] = value
-#     return f'{value}'
-
-# @app.callback(
-#     Output('no-born-slider-output', 'children'),
-#     [Input('no-born-slider', 'value')])
-# def update_no_born(value):
-#     global params
-#     params['NUM_BORN'] = lambda: np.random.binomial(value, 0.5)
-#     return f'{value}'
-
 ###################################### Graph ######################################
 
 
@@ -217,14 +176,25 @@ def update_slider_value(*args):
 def update_heatmap_graph(n):
     global heatmap_data
     heatmap_data = [[
-        round(houses.iloc[i + j * 10]['market_price'], 2) for i in range(10)
+        round(houses.iloc[i + j * 10]['last_bought_price'], 2) for i in range(10)
     ] for j in range(10)]
+    def text(
+        LOC, LBP, A, S): return f'Location: {LOC}<br />Last Bought Price: {LBP}<br />Amenities: {A}<br />Status: {S}'
+    text_data = [[
+        text(
+            str(houses.iloc[i + j * 10]['location']),
+            str(round(houses.iloc[i + j * 10]['last_bought_price'], 2)),
+            str(round(houses.iloc[i + j * 10]['amenities'], 2)),
+            str(houses.iloc[i + j * 10]['status']),
+        ) for i in range(10)] for j in range(10)]
     return {
         'data': [
             go.Heatmap(
                 z=heatmap_data,
                 y=[i for i in range(10)],
-                x=[i for i in range(10)])
+                x=[i for i in range(10)],
+                hoverinfo='text',
+                text=text_data)
         ]
     }
 

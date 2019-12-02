@@ -4,7 +4,7 @@
 
 Pipenv is used to manage packages and virtual environments.
 
-    pip install --user pipenv
+    sudo -H pip install -U pipenv
 
 ## install packages
 

@@ -329,6 +329,8 @@ def update_market_price(params, persons, houses, match_df):
     CA_MULTIPLIER_BAD = params['CA_MULTIPLIER_BAD']
     CA_MULTIPLIER_FAIR = params['CA_MULTIPLIER_FAIR']
 
+    MIN_TXN_VOL = params['MIN_TXN_VOL']
+
     # 1. Update market price using info from bid-ask-match data
     if len(match_df) == 0:
         return persons, houses
@@ -347,13 +349,12 @@ def update_market_price(params, persons, houses, match_df):
             '''
             X = houses_df[['amenities', 'distance_to_city']
                           ].values.reshape(1, -1)
-            pred_market_price = lm.predict(X)
-            max_at_zero = np.vectorize(lambda x: max(x, 5))
-            pred_market_price = max_at_zero(pred_market_price)
-            return pred_market_price.item()
+            pred_market_price = max(lm.predict(X).item(), 0)
+            return pred_market_price
 
         def _choose_market_pricer():
-            if len(clean_matches) >= 10:  # if sufficient transactions occur, use linear model
+            # if sufficient transactions occur, use linear model
+            if len(clean_matches) >= MIN_TXN_VOL:
                 return cal_market_price  # update(weets, 191202)
             else:
                 # if not, just use median of highest bid values
