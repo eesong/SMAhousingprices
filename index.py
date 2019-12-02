@@ -54,17 +54,17 @@ param_names = [
 param_min_max = [
     generate_min_max(100, 50),
     generate_min_max(100, 50),
-    generate_min_max(100, 100),
-    generate_min_max(100, 100),
+    generate_min_max(0, .1),
+    generate_min_max(0, .1),
     generate_min_max(10, 2),
     generate_min_max(0, .1),
 ]
 slider_labels = [
-    'Initialization Wealth Mean',
-    'Initialization House Price',
-    'Amenities Coef',
-    'Location Coef',
-    'Number of People Born',
+    'Initialization Wealth Mean ($,000s)',
+    'Initialization House Price ($,000s)',
+    'WTP $/Unit Amenities ($,000s)',
+    'WTP $/Unit Distance ($,000s)',
+    'Max Number of People Born',
     'Probability of Buying Intention'
 ]
 

@@ -100,7 +100,7 @@ def create_radio(card_list):
                     } for i in range(len(card_list))],
                     value=0,
                     id="vary-selection",
-                    inputClassName='py-5 my-3',
+                    inputClassName='py-5',
                     # className='d-flex flex-column justify-content-between'
                 ),
             ]),

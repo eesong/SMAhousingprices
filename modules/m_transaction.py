@@ -422,12 +422,13 @@ def utility_general_vectorised(params, house):
     AMENITIES_COEF = params['AMENITIES_COEF']
     LOC_COEF = params['LOC_COEF']
 
-    utility_due_to_location = 2 / (
-        1 + (house["location"].apply(lambda tup: tup[0]) - CITY_X())**2 +
-        (house["location"].apply(lambda tup: tup[1]) - CITY_Y())**2)
+    penalty_due_to_location = LOC_COEF * ((house["location"].apply(lambda tup: tup[0]) - CITY_X())**2 +
+                                          (house["location"].apply(lambda tup: tup[1]) - CITY_Y())**2)**.5
 
-    return LOC_COEF * utility_due_to_location + AMENITIES_COEF * house[
-        "amenities"]  # UPDATE(weets, 191125)
+    premium_due_to_amenities = AMENITIES_COEF * house["amenities"]
+
+    # UPDATE(weets, 191125)
+    return - penalty_due_to_location + premium_due_to_amenities
 
 
 def utility_function_vectorised(params, person, house):
@@ -448,6 +449,6 @@ def utility_function_vectorised(params, person, house):
         house["location"].apply(lambda tup: tup[1]) -
         person["preferred_location_y"])
 
-    utility_due_to_person = 1 / (1 + xloc**2 + yloc**2)
+    penalty_due_to_idio = IDIO_COEF * (xloc**2 + yloc**2)**.5
     return utility_general_vectorised(params,
-                                      house) + IDIO_COEF * utility_due_to_person
+                                      house) - penalty_due_to_idio
