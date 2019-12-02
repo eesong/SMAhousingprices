@@ -201,8 +201,8 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
     '''
     # 1. Create a container list to store dicts of info relating to bidding for each listing
     list_of_matches = []  # contains info on winning bid
-    match_df = pd.DataFrame()
     if len(ask_df) == 0:
+        match_df = pd.DataFrame(columns=['winning_bidder_id'])
         return persons, houses, match_df
 
     # 2. Iterate over listings in ask_df, find best bid - is successful match
@@ -214,6 +214,7 @@ def match_ask_bid(params, persons, houses, ask_df, bid_df):
         match_info_dict['location'] = listing_loc
 
         match_info_dict['amenities'] = listing['amenities']
+        match_info_dict['distance_to_city'] = listing['distance_to_city']
 
         match_info_dict['ask_price'] = listing['ask_price']
 
@@ -334,31 +335,37 @@ def update_market_price(params, persons, houses, match_df):
     clean_matches = match_df[~match_df['highest_bid_value'].isna()]
     if len(clean_matches):
         # 1.1 build linear regression model for market_price
-        X = clean_matches['amenities'].values.reshape(-1, 1)
+        X = clean_matches[['amenities', 'distance_to_city']]
         Y = clean_matches['highest_bid_value'].values
         lm = LinearRegression().fit(X, Y)
 
         print('score {} m {} c {}'.format(
             lm.score(X, Y), lm.coef_, lm.intercept_))
 
-        # 1.2 Build market pricer function
-        def _gen_market_pricer():
-            if len(clean_matches
-                   ) >= 10:  # if sufficient transactions occur, use linear model
-                return lambda am: max(
-                    0,
-                    lm.predict(np.array(am).reshape(1, -1)).item())
+        def cal_market_price(houses_df):  # update(weets,191202)
+            '''Applies linear predictor model
+            '''
+            X = houses_df[['amenities', 'distance_to_city']
+                          ].values.reshape(1, -1)
+            pred_market_price = lm.predict(X)
+            max_at_zero = np.vectorize(lambda x: max(x, 5))
+            pred_market_price = max_at_zero(pred_market_price)
+            return pred_market_price.item()
+
+        def _choose_market_pricer():
+            if len(clean_matches) >= 10:  # if sufficient transactions occur, use linear model
+                return cal_market_price  # update(weets, 191202)
             else:
-                return lambda _: clean_matches['highest_bid_value'].median(
-                )  # if not, just use median of highest bid values
+                # if not, just use median of highest bid values
+                return lambda _: clean_matches['highest_bid_value'].median()
 
-        market_pricer = _gen_market_pricer()
+        market_pricer = _choose_market_pricer()
 
-        # 1.2 Update market prices
-        houses = houses[~houses['amenities'].isna(
-        )]  # drops any rows from houses that do not have an amenities data
-        houses['market_price'] = houses['amenities'].apply(
-            lambda am: market_pricer(am))  # update(weets,191128)
+        # 1.3 Update market prices
+        # drops any rows from houses that do not have an amenities data
+        houses = houses[~houses['amenities'].isna()]
+        houses['market_price'] = houses.apply(
+            market_pricer, axis=1)  # update(weets,191202)
 
     # 2. Update market price given current affairs
     def gen_current_affair_multiplier():

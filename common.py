@@ -20,6 +20,7 @@ def running_mean(x, N):
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 
-# a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-# print(running_mean(a, 5))
+# a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+# maxer = lambda x: max(x,5)
+# maxerV = np.vectorize(maxer)
+# print(maxerV(a))

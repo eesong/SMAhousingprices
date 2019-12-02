@@ -10,6 +10,8 @@ def initialize(params):
 
     INITIAL_PRICE, INTIAL_AMENITIES = params['INITIAL_PRICE'], params[
         'INTIAL_AMENITIES']
+    CITY_X, CITY_Y = params['CITY_X'], params[
+        'CITY_Y']
     persons, houses, ask_df, bid_df = None, None, None, None
     persons = {}
     for _ in range(10):
@@ -23,19 +25,22 @@ def initialize(params):
     for x in range(10):
         for y in range(10):
             houses[(x, y)] = {
-                "location": (x, y),  # also the key 
+                "location": (x, y),  # also the key
                 "last_bought_price": INITIAL_PRICE(),
-                "status": "empty",  # "empty", "occupied", "selling" 
+                "status": "empty",  # "empty", "occupied", "selling"
                 'amenities': INTIAL_AMENITIES(),  # UPDATE(weets, 191125)
                 "occupant": np.NaN,
-                "last_updated": 0
+                "last_updated": 0,
+                # update(weets,191202) -- euclidean dist
+                "distance_to_city": ((x-CITY_X())**2+(y-CITY_Y())**2)**(0.5)
             }
-            houses[(x, y)]["market_price"] = houses[(x, y)]["last_bought_price"]
+            houses[(x, y)]["market_price"] = houses[(
+                x, y)]["last_bought_price"]
 
     houses = pd.DataFrame.from_dict(houses, orient='index')
 
     ask_df = pd.DataFrame(
-        columns=['location', 'occupant_id', 'amenities',
+        columns=['location', 'occupant_id', 'amenities', 'distance_to_city',
                  'ask_price'])  # init empty ask_df with col
     bid_df = pd.DataFrame(columns=[
         'location', 'bidder_id', 'utility_to_buyer', 'max_bid_price',
