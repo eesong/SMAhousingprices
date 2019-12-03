@@ -24,3 +24,6 @@ def running_mean(x, N):
 # maxer = lambda x: max(x,5)
 # maxerV = np.vectorize(maxer)
 # print(maxerV(a))
+
+def Nmean_to_logNmean(mu, sigma_square):
+    return 2 * np.log(mu) - .5*np.log(sigma_square + mu**2)

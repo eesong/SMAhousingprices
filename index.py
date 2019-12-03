@@ -1,7 +1,7 @@
 from modules.m_initialization import initialize
 from layouts.dash_layout import create_tabs, main, create_cards_horizontal, create_card, create_tab_content, create_navbar, create_slider, params_card, create_radio
 from initialization_params import params as init_params
-from common import generate_min_max
+from common import generate_min_max, Nmean_to_logNmean
 from simulation import simulate, update_history
 
 from collections import defaultdict
@@ -36,7 +36,7 @@ run_counter = 0
 sim_t = 0
 
 param_ids = [
-    'init-wealth',
+    'init-income',
     'init-price',
     'amen-coef',
     'loc-coef',
@@ -44,7 +44,7 @@ param_ids = [
     'prob-buy',
 ]
 param_names = [
-    'INITIAL_WEALTH',
+    'INCOME',
     'INITIAL_PRICE',
     'AMENITIES_COEF',
     'LOC_COEF',
@@ -52,7 +52,7 @@ param_names = [
     'PROBA_BUY',
 ]
 param_min_max = [
-    generate_min_max(100, 50),
+    generate_min_max(20, 5),
     generate_min_max(100, 50),
     generate_min_max(0, .5),
     generate_min_max(0, .5),
@@ -60,7 +60,7 @@ param_min_max = [
     generate_min_max(0, .1),
 ]
 slider_labels = [
-    'Initialization Wealth Mean ($,000s)',
+    'Income Mean ($,000s)',
     'Initialization House Price ($,000s)',
     'WTP $/Unit Amenities ($,000s)',
     'WTP $/Unit Distance ($,000s)',
@@ -70,7 +70,8 @@ slider_labels = [
 
 
 def params_lambdas(value): return [
-    lambda: value + 100 * np.random.uniform(),
+    lambda: np.random.lognormal(
+        Nmean_to_logNmean(value*1000, 2109460174/1000), 0.65745)/1000,
     lambda: value + 100 * np.random.uniform(),
     value,
     value,

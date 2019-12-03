@@ -7,14 +7,14 @@ params = {
     'NUM_BORN': lambda: np.random.binomial(10, 0.5),
 
     # geographic
-    'CITY_X': lambda: 9,
-    'CITY_Y': lambda: 9,
+    'CITY_X': lambda: 5,
+    'CITY_Y': lambda: 5,
     'PREFERRED_LOCATION_X': lambda: 9,
     'PREFERRED_LOCATION_Y': lambda: 9,
 
     # economic
-    'INCOME': lambda: 10,
-    'INITIAL_WEALTH': lambda: 100 + 100 * np.random.uniform(),
+    'INCOME': lambda: np.random.lognormal(10.4424, 0.65745)/1000,
+    'INITIAL_WEALTH': lambda: 100,
 
     # houses
     'INITIAL_PRICE': lambda: 100 + 100 * np.random.uniform(),
@@ -32,7 +32,7 @@ params = {
     'CA_MULTIPLIER_BAD': lambda: np.random.uniform(0.75, 0.95),
     'PROBA_CA_GOOD': 0.025,
     'PROBA_CA_BAD': 0.1,
-    'MIN_TXN_VOL': 5,
+    'MIN_TXN_VOL': 10,
 
     # plot
     'NUM_FRAMES': 50,
