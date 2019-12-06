@@ -35,6 +35,6 @@ params = {
     'MIN_TXN_VOL': 10,
 
     # plot
-    'NUM_FRAMES': 50,
+    'NUM_FRAMES': 100,
     'MILLISECS_PER_FRAME': 100,
 }
